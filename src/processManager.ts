@@ -11,6 +11,16 @@ export interface ProcessManager {
         ) => void
     ): string;
 
+    startFileExecCommand(
+        fileToExec: string, args: string[],
+        options: child_process.ExecOptions,
+        callback: (
+            error: child_process.ExecException | null,
+            stdout: string,
+            stderr: string
+        ) => void
+    ): string;
+
     startInterval(callback: (...args: any[]) => void, ms: number): string;
 
     end(id: string): void;
@@ -73,6 +83,27 @@ export class ProcessManagerImpl implements ProcessManager {
             delete this.runningCommands[id];
             this.commandCount--;
             callback(err, stdout, stderr);
+        });
+        this.commandCount++;
+        return id;
+    }
+
+    startFileExecCommand(
+        fileToExec: string,
+        args: string[],
+        options: child_process.ExecOptions,
+        callback: (
+            error: child_process.ExecException | null,
+            stdout: string,
+            stderr: string
+        ) => void
+    ): string {
+        this.processesAreKilled = false;
+        const id = `command_${this.commandCount}`;
+        this.runningCommands[id] = child_process.execFile(fileToExec, args, options, (error, stdout, stderr) => {
+            delete this.runningCommands[id];
+            this.commandCount--;
+            callback(error, stdout, stderr);
         });
         this.commandCount++;
         return id;
