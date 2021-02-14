@@ -8,6 +8,7 @@ import { IntermediateJson } from "./charmony/IntermediateJson";
 import CharmonyPanelController_v2 from "./outputPanel/PanelController_v2";
 import * as commandExists from "command-exists";
 import { runServerAnalysis } from './feature/runServerAnalysis';
+import { escapePath } from './util/escapePath';
 
 const processManager = ProcessManagerImpl.init();
 const harmonyLangConfig = vscode.workspace.getConfiguration('harmonylang');
@@ -134,9 +135,10 @@ export function runHarmony(context: vscode.ExtensionContext, fullFileName: strin
             hlConsole.appendLine("Check for CC");
             const osAlias = (process.platform === "win32") ? "doskey" : "alias";
             let charmonyCompileCommand = "";
-            if (pythonPath != "python3") { charmonyCompileCommand += `${osAlias} python3=${pythonPath} & `; }
-            if (ccPath != "cc") { charmonyCompileCommand += `${osAlias} cc=${ccPath} & `; }
-            charmonyCompileCommand += `${CHARMONY_SCRIPT_PATH} ${fullFileName}`;
+            if (typeof pythonPath === "string" && pythonPath != "python3") { charmonyCompileCommand += `${osAlias} python3=${escapePath(pythonPath)} & `; }
+            if (typeof ccPath === "string" && ccPath != "cc") { charmonyCompileCommand += `${osAlias} cc=${escapePath(ccPath)} & `; }
+            charmonyCompileCommand += `${CHARMONY_SCRIPT_PATH} ${escapePath(fullFileName)}`;
+            console.log(charmonyCompileCommand);
             processManager.startCommand(charmonyCompileCommand, {
                 cwd: CHARMONY_COMPILER_DIR
             }, (error, stdout, stderr) => {
@@ -145,6 +147,8 @@ export function runHarmony(context: vscode.ExtensionContext, fullFileName: strin
                 hlConsole.clear();
                 if (stderr) {
                     hlConsole.appendLine(stderr);
+                    hlConsole.append(error?.message ?? "");
+                    hlConsole.append(stdout);
                     CharmonyPanelController_v2.currentPanel?.updateMessage(`See Output Panel for details.`);
                     hlConsole.show();
                     return;
